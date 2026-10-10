@@ -49,3 +49,18 @@ export const getAllowedOrigins = () => {
     ]),
   ];
 };
+
+export const isAllowedVercelPreviewOrigin = (origin) => {
+  try {
+    const url = new URL(origin);
+
+    return (
+      url.protocol === "https:" &&
+      /^e-commerce-store-[a-z0-9]+-life-6fb1\.vercel\.app$/.test(
+        url.hostname
+      )
+    );
+  } catch {
+    return false;
+  }
+};

@@ -5,7 +5,11 @@ import rateLimit from "express-rate-limit";
 // import dotenv from "dotenv";
 import "dotenv/config";
 import connectDB from "./config/db.js";
-import { getAllowedOrigins, validateEnvironment } from "./config/env.js";
+import {
+  getAllowedOrigins,
+  isAllowedVercelPreviewOrigin,
+  validateEnvironment,
+} from "./config/env.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 
 import adminRoutes from "./routes/adminRoutes.js";
@@ -64,7 +68,10 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.includes(origin) ||
+        isAllowedVercelPreviewOrigin(origin)
+      ) {
         return callback(null, true);
       }
 
