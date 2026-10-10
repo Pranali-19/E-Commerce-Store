@@ -387,10 +387,7 @@ const verifyRazorpayPayment = asyncHandler(
       return res.status(200).json({
         success: true,
         message: "Payment already processed.",
-        data: {
-          order: getSafeCustomerOrder(existingOrder),
-          alreadyProcessed: true,
-        },
+        data: getSafeCustomerOrder(existingOrder),
       });
     }
 
@@ -482,53 +479,82 @@ const verifyRazorpayPayment = asyncHandler(
     }
 
     // create order
-    const order = await Order.create({
-      user: req.user._id,
+    let order;
 
-      items: orderItems,
+    try {
+      order = await Order.create({
+        user: req.user._id,
 
-      shippingAddress: {
-        fullName: address.fullName,
-        phone: address.phone,
-        addressLine1: address.addressLine1,
-        addressLine2: address.addressLine2,
-        city: address.city,
-        state: address.state,
-        postalCode: address.postalCode,
-        country: address.country,
-      },
+        items: orderItems,
 
-      paymentMethod: "razorpay",
-
-      paymentStatus: "paid",
-
-      orderStatus: "confirmed",
-
-      subtotal: totals.subtotal,
-
-      shippingFee: totals.shippingFee,
-
-      discount: totals.discount,
-
-      tax: totals.tax,
-
-      totalAmount: totals.totalAmount,
-
-      couponCode: totals.appliedCouponCode,
-
-      paymentDetails: {
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-      },
-
-      statusHistory: [
-        {
-          status: "confirmed",
-          note: "Online payment successful and order confirmed",
+        shippingAddress: {
+          fullName: address.fullName,
+          phone: address.phone,
+          addressLine1: address.addressLine1,
+          addressLine2: address.addressLine2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
         },
-      ],
-    });
+
+        paymentMethod: "razorpay",
+
+        paymentStatus: "paid",
+
+        orderStatus: "confirmed",
+
+        subtotal: totals.subtotal,
+
+        shippingFee: totals.shippingFee,
+
+        discount: totals.discount,
+
+        tax: totals.tax,
+
+        totalAmount: totals.totalAmount,
+
+        couponCode: totals.appliedCouponCode,
+
+        paymentDetails: {
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          razorpaySignature: razorpay_signature,
+        },
+
+        statusHistory: [
+          {
+            status: "confirmed",
+            note: "Online payment successful and order confirmed",
+          },
+        ],
+      });
+    } catch (error) {
+      const isDuplicateRazorpayOrder =
+        error.code === 11000 &&
+        (error.keyPattern?.["paymentDetails.razorpayOrderId"] ||
+          error.keyValue?.["paymentDetails.razorpayOrderId"] ===
+            razorpay_order_id);
+
+      if (!isDuplicateRazorpayOrder) {
+        throw error;
+      }
+
+      const duplicateOrder = await Order.findOne({
+        user: req.user._id,
+        "paymentDetails.razorpayOrderId": razorpay_order_id,
+      });
+
+      if (!duplicateOrder) {
+        throw error;
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment already processed.",
+        data: getSafeCustomerOrder(duplicateOrder),
+      });
+    }
 
     // Reduce stock
     for (const item of totals.cart.items) {
