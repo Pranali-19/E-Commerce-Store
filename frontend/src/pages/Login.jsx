@@ -62,8 +62,13 @@ const Login = () => {
     const result = await login(formData);
 
     if (result.success) {
+      const requestedDestination = location.state?.from;
       const destination =
-        location.state?.from || "/";
+        result.user?.role === "admin"
+          ? requestedDestination?.startsWith("/admin")
+            ? requestedDestination
+            : "/admin"
+          : requestedDestination || "/";
 
       navigate(destination, {
         replace: true,
