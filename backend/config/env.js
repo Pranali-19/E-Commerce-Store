@@ -32,7 +32,9 @@ export const validateEnvironment = () => {
 };
 
 export const getAllowedOrigins = () => {
-  const configuredOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  const configuredOrigins = (
+    process.env.FRONTEND_URL || "https://e-commerce-store-nine-sable.vercel.app"
+  )
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
